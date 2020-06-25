@@ -29,6 +29,9 @@
 		<script src="plugin/notes/notes.js"></script>
 		<script src="plugin/markdown/markdown.js"></script>
 		<script src="plugin/highlight/highlight.js"></script>
+		<script src="plugin/menu/menu.js"></script>
+		<script src="plugin/toolbar/toolbar.js"></script>
+		<script src="plugin/reveald3/reveal3d.js"></script>
 		<script>
 			// More info about initialization & config:
 			// - https://revealjs.com/initialization/
@@ -39,9 +42,9 @@
 				// Learn about plugins: https://revealjs.com/plugins/
 				plugins: [ RevealMarkdown, RevealHighlight, RevealNotes ],
 				dependencies: [
-					{ src: 'node_modules/reveal.js-menu/menu.js'},
-					{ src: 'node_modules/reveal.js-toolbar/toolbar.js', async: true},
-					{ src: 'node_modules/reveald3/reveald3.js'}
+					{ src: 'plugin/menu/menu.js', async: true},
+					{ src: 'plugin/toolbar/toolbar.js', async: true},
+					{ src: 'plugin/reveald3/reveald3.js', async: true}
 				],
 				toolbar: {
 					fullscreen: true,
