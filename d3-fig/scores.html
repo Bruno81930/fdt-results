@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+    .selector_legend{
+        font-size: 14px;
+        color: "#7f7f7f";
+        font-family: 'Fira Code', monospace;
+    }
+
+    .selector_value {
+        font-size: 10px;
+        color: "#7f7f7f";
+        font-family: 'Fira Code', monospace;
+    }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/1.49.5/plotly.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300&display=swap" rel="stylesheet">
+<body>
+    <div class="violinplot" data-num="0">
+        <div class="plot" id="myplot"></div>
+        <div class="control-row">
+            <span class="selector_legend">Calculation: </span> <select class="selector_value calculation"></select><br>
+            <span class="selector_legend">Feature Selection: </span><select class="selector_value feature"></select><br>
+            <span class="selector_legend">Score: </span><select class="selector_value score"></select>
+        </div>
+    </div>
+</body>
+
+<script>
+
+    const allCalculations = ['max', 'mean'];
+    const allFeatureSelections = ['all', 'chi2_20p', 'chi2_50p',
+            'f_classif_20', 'f_classif_50', 'mutual_info_classif_20p',
+            'mutual_info_classif_50p', 'recursive_elimination']
+    const allScores = ['precision', 'recall', 'f1_measure', 'auc_roc', 'brier_score']
+    const datasets = ['Designite', 'Fowler', 'Designite + Fowler',
+                        'Traditional', 'Traditional + Designite',
+                        'Traditional + Fowler', 'Traditional + Designite + Fowler']
+
+    Plotly.d3.csv("data.csv", function(err, rows) {
+
+        function unpack(rows, key) {
+            return rows.map(function(row) {return row[key]; });
+        }
+
+        setViolinPlot('max', 'all', 'precision')
+        function setViolinPlot(chosenCalculation, chosenFeatureSelection, chosenScore) {
+            filtered_rows = rows.filter(function(row) { return row['feature_selection'] === chosenFeatureSelection});
+            key = chosenScore + '_' + chosenCalculation;
+            const data = [{
+                type: 'violin',
+                x: unpack(filtered_rows, 'dataset'),
+                y: unpack(filtered_rows, key),
+                points: 'none',
+                box: {
+                    visible: true
+                },
+                line: {
+                    color: 'black',
+                },
+                meanline: {
+                    visible: true
+                },
+                transforms: [{
+                    type: 'groupby',
+                    groups: unpack(filtered_rows, "dataset"),
+                    styles: [
+                        {target: 'Designite', value: {line: {color: 'blue'}}},
+                        {target: 'Fowler', value: {line: {color: 'green'}}},
+                        {target: 'Designite + Fowler', value: {line: {color: 'orange'}}},
+                        {target: 'Traditional', value: {line: {color: 'brown'}}},
+                        {target: 'Traditional + Fowler', value: {line: {color: 'purple'}}},
+                        {target: 'Traditional + Designite', value: {line: {color: 'pink'}}},
+                        {target: 'Traditional + Designite + Fowler', value: {line: {color: 'red'}}}
+                    ]
+                }]
+            }];
+
+            const layout = {
+                title: "<span style=\"font-size: 13\">Classification Scores between <i style='color: black'>Designite</i> Smells, <i style='color: black'>Fowler</i> Smells and <i style='color: black'>Traditional</i> Metrics</span>",
+                yaxis: {
+                    zeroline: false,
+                    title: chosenScore
+                },
+                xaxis: {
+                    categoryorder: "array",
+                    categoryarray: datasets,
+                    title: "Metric"
+                },
+                violingap: 0,
+                violingroupgap: 0,
+                violinmode: "overlay",
+                font: {
+                    family: "'Fira Code', monospace",
+                    size: 8,
+                    color: "#7f7f7f"
+                }
+            };
+            Plotly.newPlot('myplot', data, layout)
+        }
+
+        let innerContainer = document.querySelector('[data-num="0"'),
+            calculationSelector = innerContainer.querySelector('.calculation'),
+            featureSelector = innerContainer.querySelector('.feature'),
+            scoreSelector = innerContainer.querySelector('.score');
+
+        function assignOptions(textArray, selector) {
+            for(let i = 0; i < textArray.length; i++) {
+                let currentOption = document.createElement('option');
+                currentOption.text = textArray[i];
+                selector.appendChild(currentOption);
+            }
+        }
+
+        assignOptions(allCalculations, calculationSelector);
+        assignOptions(allFeatureSelections, featureSelector);
+        assignOptions(allScores, scoreSelector);
+
+        function updateData() {
+            setViolinPlot(calculationSelector.value, featureSelector.value, scoreSelector.value);
+        }
+
+        calculationSelector.addEventListener('change', updateData, false);
+        featureSelector.addEventListener('change', updateData, false);
+        scoreSelector.addEventListener('change', updateData, false);
+    });
+</script>
+</html>
