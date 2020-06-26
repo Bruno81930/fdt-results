@@ -37,7 +37,7 @@
                         'Traditional', 'Traditional + Designite',
                         'Traditional + Fowler', 'Traditional + Designite + Fowler']
 
-    Plotly.d3.csv("data.csv", function(err, rows) {
+    Plotly.d3.csv("scores.csv", function(err, rows) {
 
         function unpack(rows, key) {
             return rows.map(function(row) {return row[key]; });

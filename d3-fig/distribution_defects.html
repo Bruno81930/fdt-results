@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+</style>
+<script src="js/plotly.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300&display=swap" rel="stylesheet">
+<body>
+    <div class="distribution" data-num="0">
+        <div class="plot" id="myplot"></div>
+        </div>
+    </div>
+</body>
+<script>
+    Plotly.d3.csv("original_defects.csv", function(err, rows) {
+
+        function unpack(rows, key) {
+            return rows.map(function(row) {return row[key]; });
+        }
+
+        function unpack_sum(rows, key) {
+            let result = Object.values(groupBy(rows, 'project')).map(function(row) {
+                return row.map(function(project_row) {
+                    return project_row[key]
+                        }).reduce(function (a, b) {
+                            return parseInt(a) + parseInt(b);
+                }, 0);
+            });
+            return result;
+        }
+
+        const groupBy = (rows, key) => {
+            // Return the end result
+            return rows.reduce((result, row) => {
+                // If an array already present for key, push it to the array. Else create an array and push the object
+                (result[row[key]] = result[row[key]] || []).push(
+                    row
+                );
+                // Return the current iteration `result` value, this will be taken as next iteration `result` value and accumulate
+                return result;
+            }, {}); // empty object is the initial value for result object
+        };
+
+        let histogram_defects = {
+            x: unpack_sum(rows, "number_defects"),
+            name: "Defects",
+            type: 'histogram',
+            histnorm: "count",
+            marker: {
+                color: "#00b4d8",
+                width: 0.2
+            },
+            autobinx: true
+        };
+
+        let data = [histogram_defects];
+
+        let layout = {
+            title: "Distribution of Defects",
+            barmode: 'overlay',
+            bargap: 0.05,
+            bargroupgap: 0.2,
+            font: {
+                    family: "'Fira Code', monospace",
+                    size: 8,
+                    color: "#7f7f7f"
+            },
+            xaxis: {
+                title: "Defects"
+            }
+        };
+
+        Plotly.newPlot('myplot', data, layout);
+    });
+</script>
