@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+    .range-label{
+        font-size: 14px;
+        color: "#7f7f7f";
+        font-family: 'Fira Code', monospace;
+    }
+
+    .range-select{
+        font-size: 10px;
+        color: "#7f7f7f";
+        font-family: 'Fira Code', monospace;
+    }
+
+</style>
+<script src="js/plotly.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300&display=swap" rel="stylesheet">
+<body>
+    <div class="distribution" data-num="0">
+        <div class="plot" id="myplot"></div>
+        <div class="select">
+            <span class="range-label">Feature Selection: </span><select class="feature-select"></select><br>
+            <span class="range-label">Score: </span><select class="scores-select"></select><br>
+            <span class="range-label">Calculation: </span><select class="calculation-select"></select><br>
+            <span class="range-label">Defects Origin: </span><select class="origin-select"></select><br>
+            <span class="range-label">Defects Range 1: </span><select class="range-one-select"></select><br>
+            <span class="range-label">Defects Range 2: </span><select class="range-two-select"></select><br>
+        </div>
+    </div>
+</body>
+<script>
+    const metrics = ['Designite', 'Fowler', 'Designite + Fowler', 'Traditional',
+        'Traditional + Designite', 'Traditional + Fowler', 'Traditional + Designite + Fowler'];
+    const allCalculations = ['max', 'mean'];
+    const allFeatureSelections = ['all', 'chi2_20p', 'chi2_50p',
+            'f_classif_20', 'f_classif_50', 'mutual_info_classif_20p',
+            'mutual_info_classif_50p', 'recursive_elimination'];
+    const allScores = ['precision', 'recall', 'f1_measure', 'auc_roc', 'brier_score'];
+    const allDefectsOrigin = [
+        'Original Num Files Per Version',
+        'Original Num Defective Files Per Version',
+        'Original Training Num Files',
+        'Original Testing Num Files',
+        'Original Training Num Defective Files',
+        'Original Testing Num Defective Files',
+        'Num Training Files',
+        'Num Testing Files',
+        'Num Training Defective Files',
+        'Num Testing Defective Files']
+    const range = (function(limit) {
+        let result = []
+        const step = (limit + 1)/13;
+        for(let i = 0; i < limit; i += step) {
+           result = result.concat(
+               [{
+                   'min': i,
+                   'max': i + step - 1,
+                   'name': "[" + i.toString() + " - " + (i + step - 1).toString() + "]"
+               }]);
+        }
+        return result
+    })(2599);
+    Plotly.d3.csv("scores_defective.csv", function(err, rows) {
+
+        function unpack(rows, key) {
+            return rows.map(function(row) {return row[key]; });
+        }
+
+        const groupBy = (rows, key) => {
+            // Return the end result
+            return rows.reduce((result, row) => {
+                // If an array already present for key, push it to the array. Else create an array and push the object
+                (result[row[key]] = result[row[key]] || []).push(
+                    row
+                );
+                // Return the current iteration `result` value, this will be taken as next iteration `result` value and accumulate
+                return result;
+            }, {}); // empty object is the initial value for result object
+        };
+
+        function get_range_data(score, origin, filtered_rows, id, range_id) {
+            g_rows = filtered_rows.filter(function (row) {
+                return row[origin] >= range_id['min'] && row[origin] <= range_id['max'];
+            });
+
+            return {
+                type: 'violin',
+                x: unpack(g_rows, 'metrics_configuration'),
+                y: unpack(g_rows, key),
+                xaxis: 'x'+(id),
+                yaxis: 'y'+(id),
+                points: 'none',
+                box: {
+                    visible: true
+                },
+                line: {
+                    color: 'black',
+                },
+                meanline: {
+                    visible: true
+                },
+                transforms: [{
+                    type: 'groupby',
+                    groups: unpack(filtered_rows, "metrics_configuration"),
+                    styles: [
+                        {target: 'Designite', value: {line: {color: '#'+ Math.floor(Math.random()*16777215).toString(16)}}},
+                        {target: 'Fowler', value: {line: {color: '#' + Math.floor(Math.random()*16777215).toString(16)}}},
+                        {target: 'Designite + Fowler', value: {line: {color: '#' + Math.floor(Math.random()*16777215).toString(16)}}},
+                        {target: 'Traditional', value: {line: {color: '#' + Math.floor(Math.random()*16777215).toString(16)}}},
+                        {target: 'Traditional + Fowler', value: {line: {color: '#' + Math.floor(Math.random()*16777215).toString(16)}}},
+                        {target: 'Traditional + Designite', value: {line: {color: '#' + Math.floor(Math.random()*16777215).toString(16)}}},
+                        {target: 'Traditional + Designite + Fowler', value: {line: {color: '#' + Math.floor(Math.random()*16777215).toString(16)}}}
+                    ]
+                }]
+            };
+        }
+
+        setViolinGridPlots('all', 'precision', 'max', 'original_num_files_per_version', range[0], range[0]);
+        function setViolinGridPlots(feature, score, calculation, origin, range_one, range_two) {
+            key = score + '_' + calculation;
+            let filtered_rows = rows.filter(function(row) {
+                return row['feature_selection'] === feature;
+            });
+
+            const range_data_one = get_range_data(score, origin, filtered_rows, 1, range_one);
+            const range_data_two = get_range_data(score, origin, filtered_rows, 2, range_two);
+            const data = [range_data_one, range_data_two];
+
+            let layout = {
+                title: "<span style=\"font-size: 13\">Classification Scores between <i style='color: black'>Designite</i> Smells, <i style='color: black'>Fowler</i> Smells and <i style='color: black'>Traditional</i> Metrics</span>",
+                yaxis: {
+                    zeroline: false,
+                    title: score,
+                },
+                xaxis: {
+                    title: 'Ranges'
+                },
+                violingap: 0,
+                violingroupgap: 0,
+                violinmode: "overlay",
+                font: {
+                    family: "'Fira Code', monospace",
+                    size: 8,
+                    color: "#7f7f7f"
+                },
+                grid: {
+                    rows:2,
+                    columns:1,
+                    pattern: 'independent'
+                }
+            };
+            Plotly.newPlot('myplot', data, layout);
+        }
+
+
+        let innerContainer = document.querySelector('[data-num="0"'),
+            featureSelector = innerContainer.querySelector('.feature-select'),
+            scoresSelector = innerContainer.querySelector('.scores-select'),
+            calculationSelector = innerContainer.querySelector('.calculation-select'),
+            originSelector = innerContainer.querySelector('.origin-select'),
+            rangeOneSelector = innerContainer.querySelector('.range-one-select'),
+            rangeTwoSelector = innerContainer.querySelector('.range-two-select')
+
+        function assignOptions(options, selector) {
+            for(let i = 0; i < options.length; i++) {
+                let currentOption = document.createElement('option');
+                currentOption.text = options[i];
+                selector.appendChild(currentOption);
+            }
+        }
+
+        assignOptions(allFeatureSelections, featureSelector);
+        assignOptions(allScores, scoresSelector);
+        assignOptions(allCalculations, calculationSelector);
+        assignOptions(allDefectsOrigin, originSelector);
+        assignOptions(range.map(function (r) {
+            return r['name'];
+        }), rangeOneSelector);
+        assignOptions(range.map(function (r) {
+            return r['name'];
+        }), rangeTwoSelector);
+
+        function process_origin(value) {
+            return value.toLowerCase().replace(/ /g,"_");
+        }
+
+        function updateData() {
+            setViolinGridPlots(
+                featureSelector.value,
+                scoresSelector.value,
+                calculationSelector.value,
+                process_origin(originSelector.value),
+                range.filter(r => {return r.name === rangeOneSelector.value})[0],
+                range.filter(r => {return r.name === rangeTwoSelector.value})[0]);
+        }
+        featureSelector.addEventListener('change', updateData, false);
+        scoresSelector.addEventListener('change', updateData, false);
+        calculationSelector.addEventListener('change', updateData, false);
+        originSelector.addEventListener('change', updateData, false);
+        rangeOneSelector.addEventListener('change', updateData, false);
+        rangeTwoSelector.addEventListener('change', updateData, false);
+
+    });
+</script>

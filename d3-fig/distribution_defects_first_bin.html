@@ -22,12 +22,12 @@
         <div class="select">
             <span class="range-label">Range: </span><select class="range-select"></select>
         </div>
-        </div>
     </div>
 </body>
 <script>
-    const range = (function(limit, step) {
+    const range = (function(limit) {
         let result = []
+        const step = (limit + 1)/13;
         for(let i = 0; i < limit; i += step) {
            result = result.concat(
                [{
@@ -37,7 +37,7 @@
                }]);
         }
         return result
-    })(6500, 500);
+    })(2599);
     Plotly.d3.csv("original_defects.csv", function(err, rows) {
 
         function unpack(rows, key) {
